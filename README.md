@@ -1,2 +1,2 @@
-# HKStats
+# Hierarchical Kolmogorov-Smirnov Test
 Work in progress...
