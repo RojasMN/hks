@@ -1,2 +1,2 @@
-# Hierarchical Kolmogorov-Smirnov Test
+# Hierarchical Kolmogorov-Smirnov (HKS) Test
 Work in progress...
