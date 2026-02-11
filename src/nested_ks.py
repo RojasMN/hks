@@ -194,7 +194,7 @@ class HierarchicalPermutationTest:
         if self.p_value is None:
             raise RuntimeError("Run .run() first")
         
-        plt.figure(figsize = (6, 3))
+        plt.figure(figsize = (10, 5))
         sns.kdeplot(self.null_distribution, fill = True, color = "grey", label = "Null Distribution (Permuted)")
         sns.kdeplot(self.observed_distribution, fill = True, color = "blue", label = "Observed Distribution (Resampled)")
         plt.axvline(self.observed_stat_median, color = 'red', linestyle = '--', label = f'Observed Median: {self.observed_stat_median:.3f}')
