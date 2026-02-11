@@ -33,7 +33,7 @@ The `HierarchicalPermutationTest` class implements a **hierarchical resampling (
 
 1.  **Robust Observed Statistic & Handling Imbalance:**
     Instead of calculating a single KS statistic on the raw data, the class computes a **robust estimate**.
-    * The resampling process draws a fixed number of observations from each subject (and a fixed number of subjects per group). This ensures that the test result is not dominated by subjects with a higher number of measures.
+    * The resampling process draws a fixed number of observations from each subject (and a fixed number of subjects per group). This ensures that the test result is not dominated by subjects with higher number of measures.
     * It calculates the KS (or Anderson-Darling) statistic for each of these balanced resamples.
     * The final **Observed Statistic** is reported as the **median** of this distribution. This ensures the metric is stable and not driven by outliers.
 
