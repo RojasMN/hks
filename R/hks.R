@@ -232,7 +232,7 @@ generate_hierarchical_data <- function(n_basal,
   return(simulated_df)
 }
 
-# --------------------------------- TESTING ---------------------------------
+# --------------------------------- TESTING EXAMPLES ---------------------------------
 
 # Generating the simulated dataframe
 p_basal <- list(mean = 0.5, sigma = 0.3)
@@ -251,7 +251,7 @@ hks_result <- hierarchical_permutation_test(df = df1,
                                             subject_col = 'subject',
                                             cell_col = 'subunit',
                                             group_col = 'group',
-                                            metric = 'ad',
+                                            metric = 'ks',
                                             n_resamples = 2000,
                                             n_permutations = 2000,
                                             replace = TRUE,
@@ -259,7 +259,7 @@ hks_result <- hierarchical_permutation_test(df = df1,
 
 plot_hks_results(result_list = hks_result)
 
-# Same test but with the AD metric
+# Same test but with the AD metric (this takes longer)
 had_result <- hierarchical_permutation_test(df = df1,
                                             value_col = 'variable',
                                             subject_col = 'subject',
