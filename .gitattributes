@@ -3,4 +3,4 @@
 
 # Make sure that GitHub does not classify the programming language as Jupyter Notebook or R
 notebooks/* linguist-documentation
-r/* linguinst-documentation
+*.R linguist-documentation
