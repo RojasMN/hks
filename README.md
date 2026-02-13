@@ -1,7 +1,7 @@
 # Hierarchical Kolmogorov-Smirnov (HKS) Test
 A Python package for performing a Hierarchical (Nested) Kolmogorov-Smirnov Test. This tool is designed for datasets where observations are not independent but are grouped (e.g., multiple neurons recorded from the same animal), addressing the problem of pseudoreplication.
 
-* **Note on Language Support:** The core of this package is implemented in Python. For users who prefer working in R, the `/R` directory contains an equivalent implementation of the statistical procedures.
+* **Note on Language Support:** The core of this package is implemented in Python. For users who prefer working in R, the `/R` directory contains an equivalent implementation of the statistical procedures. However, Python implementation is significantly faster. It is optimized using NumPy vectorization to bypass the overhead of DataFrame processing, making it the preferred choice for large datasets or high-iteration bootstraps.
   
 ## 1. Conceptual Background
 
