@@ -120,9 +120,9 @@ class HierarchicalPermutationTest:
             # -------------- 4.1 Select cells from each subject --------------
        
             if self.replace:
-                chosen_cell_indices = rng.choice(n_available_cells, self.n_cells, replace=True)
+                chosen_cell_indices = rng.choice(n_available_cells, self.n_cells, replace = True)
             else:
-                chosen_cell_indices = rng.choice(n_available_cells, self.n_cells, replace=False)
+                chosen_cell_indices = rng.choice(n_available_cells, self.n_cells, replace = False)
             
             # -------------- 4.2 Sample observations from each selected cell --------------
             
@@ -130,9 +130,9 @@ class HierarchicalPermutationTest:
             for c_idx in chosen_cell_indices:
                 cell_vals = cells_list[c_idx]
                 if self.replace:
-                    obs = rng.choice(cell_vals, self.n_obs, replace=True)
+                    obs = rng.choice(cell_vals, self.n_obs, replace = True)
                 else:
-                    obs = rng.choice(cell_vals, self.n_obs, replace=False)
+                    obs = rng.choice(cell_vals, self.n_obs, replace = False)
                 subject_samples.append(obs)
 
             subject_samples = np.concatenate(subject_samples)
