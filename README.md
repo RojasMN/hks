@@ -31,7 +31,7 @@ This inflation of the effective sample size is called **pseudoreplication**. It 
 
 The `HierarchicalPermutationTest` class implements a **hierarchical resampling (permutation) test** to calculate a valid p-value that respects the grouped structure of the data.
 
-### How it works (`nested_ks.py`)
+### How it works (`hks.py`)
 
 1.  **Robust Observed Statistic & Handling Imbalance:**
     Instead of calculating a single KS statistic on the raw data, the class computes a **robust estimate**.
