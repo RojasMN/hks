@@ -283,19 +283,34 @@ HierarchicalPermutationTest <- R6Class("HierarchicalPermutationTest",
                                            
                                            metric_name <- ifelse(self$metric == "ks", "KS Statistic", "Anderson-Darling Statistic")
                                            main_title <- ifelse(is.null(title), 
-                                                                sprintf("Nested Permutation Test (%s)\np-value: %.5f", toupper(self$metric), self$p_value),
+                                                                sprintf("Nested Permutation Test (%s)", toupper(self$metric)),
                                                                 title)
                                            
+                                           sub_title <- sprintf("p-value: %.5f", self$p_value)
+                                           
                                            p <- ggplot(df_plot, aes(x = stat, fill = type)) +
-                                             geom_density(alpha = 0.4, color = "black") +
+                                             geom_density(alpha = 0.4, color = NA) +
                                              geom_vline(aes(xintercept = self$observed_stat_median, color = "Observed Median"), 
                                                         linetype = "dashed", linewidth = 1, show.legend = TRUE) +
                                              scale_fill_manual(values = c("Null Distribution (Permuted)" = "grey", 
                                                                           "Observed Distribution (Resampled)" = "blue")) +
                                              scale_color_manual(name = "", values = c("Observed Median" = "red")) +
-                                             labs(title = main_title, x = metric_name, y = "Density", fill = "") +
+                                        
+                                             labs(title = main_title, 
+                                                  subtitle = sub_title, 
+                                                  x = metric_name, 
+                                                  y = "Density", 
+                                                  fill = "") +
+                                             
                                              theme_minimal() +
-                                             theme(legend.position = "bottom")
+                                             theme(
+                                               legend.position = "bottom",
+                                               
+                                               plot.title = element_text(face = "bold", hjust = 0.5, size = 14),
+                                               plot.subtitle = element_text(hjust = 0.5, size = 12),
+                                               panel.border = element_rect(colour = "black", fill = NA, linewidth = 1),
+                                               axis.line = element_blank()
+                                             )
                                            
                                            print(p)
                                          }
