@@ -6,4 +6,5 @@ seaborn
 tqdm
 ipykernel
 notebook
+joblib
 

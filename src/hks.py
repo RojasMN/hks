@@ -4,9 +4,9 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import seaborn as sns
 from tqdm import tqdm
-from typing import Literal, Optional
+from joblib import Parallel, delayed
 import warnings
-
+from typing import Literal, Optional, List, Dict
 
 class HierarchicalPermutationTest:
     
@@ -27,32 +27,27 @@ class HierarchicalPermutationTest:
     """
     
     
-    def __init__(self, 
-                 df: pd.DataFrame, 
-                 value_col: str, 
-                 subject_col: str, 
-                 cell_col: str, 
-                 group_col: str, 
+    def __init__(self,
+                 df: pd.DataFrame,
+                 value_col: str,
+                 subject_col: str,
+                 cell_col: str,
+                 group_col: str,
                  metric: Literal['ks', 'ad'] = 'ks',
                  n_cells_per_subject: Optional[int] = None,
                  n_obs_per_cell: Optional[int] = None,
                  replace: bool = False):
-      
-        self.df = df.copy()
-        self.value_col = value_col
-        self.subject_col = subject_col
-        self.cell_col = cell_col
-        self.group_col = group_col
-        self.metric = metric 
-        self.replace = replace
-      
-        self.groups = self.df[group_col].unique()
+        
+        self.metric = metric
+        self.replace = replace 
+        
+        self.groups = df[group_col].unique()
         if len(self.groups) != 2:
             raise ValueError(f"The column '{group_col}' must contain exactly 2 groups.")
-      
-        # ------------ 1. Setting the number of observations per cell ------------
         
-        actual_min_obs = self.df.groupby([subject_col, cell_col])[value_col].count().min()  
+        # ------------------------ 1. Setting the number of observations per cell ------------------------
+        
+        actual_min_obs = df.groupby([subject_col, cell_col])[value_col].count().min()
       
         if n_obs_per_cell is None:
             self.n_obs = actual_min_obs
@@ -67,9 +62,9 @@ class HierarchicalPermutationTest:
             self.n_obs = n_obs_per_cell
             print(f"INFO: User defined n_obs_per_cell = {self.n_obs}.")
         
-        # ------------ 2. Setting the number of cells per subject ------------
+        # ------------------------ 2. Setting the number of cells per subject ------------------------
         
-        actual_min_cells = self.df.groupby(subject_col)[cell_col].nunique().min()
+        actual_min_cells = df.groupby(subject_col)[cell_col].nunique().min()
       
         if n_cells_per_subject is None:
             self.n_cells = actual_min_cells
@@ -83,62 +78,88 @@ class HierarchicalPermutationTest:
 
             self.n_cells = n_cells_per_subject
             print(f"INFO: User defined n_cells_per_subject = {self.n_cells}.")
+            
+        # ------------------------ 3. Data preprocessing ------------------------
         
+        print("INFO: Optimizing data structure for fast resampling...")
+        self.optimized_data = []
+        self.subject_ids = df[subject_col].unique()
+        self.group_map = {self.groups[0]: 0, self.groups[1]: 1}
+        
+        for sub in self.subject_ids:
+            sub_df = df[df[subject_col] == sub]
+            group_label = self.group_map[sub_df[group_col].iloc[0]]
+            
+            cells_data = []
+            for cell in sub_df[cell_col].unique():
+                vals = sub_df[sub_df[cell_col] == cell][value_col].to_numpy()
+                cells_data.append(vals)
+                
+            self.optimized_data.append((group_label, cells_data))
+            
+        self.n_subjects = len(self.optimized_data)
         self.observed_distribution = []
         self.null_distribution = []
-        self.observed_stat_median = None
-        self.p_value = None
-      
-    # ------------ 3. Hierarchical resample ------------
+        self.p_value = None 
     
-    def _hierarchical_resample(self, df_input):
+    # --------------------------- 4. Resampling ---------------------------
+    
+    def _fast_resample_and_compute(self, data_structure, current_labels, seed):
         
-        # Balancing number of observations
-        balanced_cells_df = df_input.groupby([self.subject_col, self.cell_col], group_keys=True).apply(
-            lambda x: x.sample(n=self.n_obs, replace=self.replace)
-        )
+        # Initialize unique RNG for this worker
+        rng = np.random.default_rng(seed)
         
-        balanced_cells_df = balanced_cells_df.reset_index()
-        balanced_cells_df = balanced_cells_df.loc[:, ~balanced_cells_df.columns.duplicated()]
+        g0_samples = []
+        g1_samples = []
         
-        # Balancing the number of cells 
-        unique_cells = balanced_cells_df[[self.subject_col, self.cell_col]].drop_duplicates()
-        selected_cells = unique_cells.groupby(self.subject_col).sample(n=self.n_cells, replace=self.replace)
-        
-        # MERGE
-        final_df = balanced_cells_df.merge(selected_cells, on=[self.subject_col, self.cell_col], how='inner')
-        
-        return final_df
+        for i in range(self.n_subjects):
+            _, cells_list = data_structure[i]
+            assigned_group = current_labels[i]
+            n_available_cells = len(cells_list)
             
-    # ------------ 4. Computing the KS/AD statistic ------------
-    
-    def _compute_statistic(self, current_df):
+            # -------------- 4.1 Select cells from each subject --------------
+       
+            if self.replace:
+                chosen_cell_indices = rng.choice(n_available_cells, self.n_cells, replace=True)
+            else:
+                chosen_cell_indices = rng.choice(n_available_cells, self.n_cells, replace=False)
+            
+            # -------------- 4.2 Sample observations from each selected cell --------------
+            
+            subject_samples = []
+            for c_idx in chosen_cell_indices:
+                cell_vals = cells_list[c_idx]
+                if self.replace:
+                    obs = rng.choice(cell_vals, self.n_obs, replace=True)
+                else:
+                    obs = rng.choice(cell_vals, self.n_obs, replace=False)
+                subject_samples.append(obs)
+
+            subject_samples = np.concatenate(subject_samples)
+            
+            if assigned_group == 0:
+                g0_samples.append(subject_samples)
+            else:
+                g1_samples.append(subject_samples)
         
-        g1_data = current_df[current_df[self.group_col] == self.groups[0]][self.value_col].values
-        g2_data = current_df[current_df[self.group_col] == self.groups[1]][self.value_col].values
-        
-        if len(g1_data) == 0 or len(g2_data) == 0:
+        if not g0_samples or not g1_samples:
             return 0
         
-        if self.metric == 'ks':
-            stat, _ = stats.ks_2samp(g1_data, g2_data)
+        g0_arr = np.concatenate(g0_samples)
+        g1_arr = np.concatenate(g1_samples)
         
+        # -------------- 4.3 Compute statistic --------------
+        
+        if self.metric == 'ks':
+            return stats.ks_2samp(g0_arr, g1_arr).statistic
         elif self.metric == 'ad':
-            
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                res = stats.anderson_ksamp([g1_data, g2_data])
-                
-                try:
-                    stat = res.statistic
-                except AttributeError:
-                    stat = res[0]
-                
-        return stat
-      
-    # ------------ 5. Bootstrap ------------
+                return stats.anderson_ksamp([g0_arr, g1_arr]).statistic
+            
+    # --------------------------- 5. Bootstrap ---------------------------
     
-    def run(self, n_resamples = 100, n_permutations = 1000, random_state = None):
+    def run(self, n_resamples = 1000, n_permutations = 1000, n_jobs = -1, random_state = None):
         
         """
         The bootstrap resampling procedure is performed on the observed data to generate a
@@ -151,43 +172,46 @@ class HierarchicalPermutationTest:
         
         """
         
-        if random_state:
-            np.random.seed(random_state)
+        if random_state is None:
+            master_rng = np.random.default_rng()
+        else:
+            master_rng = np.random.default_rng(random_state)
+            
+        original_labels = np.array([item[0] for item in self.optimized_data])
         
-        # 5.1 Observed distribution
-        obs_stats = []
-        for _ in tqdm(range(n_resamples), desc = "Observed Distribution"):
-            resampled_df = self._hierarchical_resample(self.df)
-            stat = self._compute_statistic(resampled_df)
-            obs_stats.append(stat)
+        # -------------- 5.1 Observed distribution --------------
         
-        self.observed_distribution = np.array(obs_stats)
+        print(f"Calculating Observed Distribution ({n_resamples} resamples)...")
+        obs_seeds = master_rng.integers(0, 10**9, size = n_resamples)
+        
+        self.observed_distribution = Parallel(n_jobs = n_jobs)(
+            delayed(self._fast_resample_and_compute)(self.optimized_data, original_labels, seed)
+            for seed in tqdm(obs_seeds, total = n_resamples, desc = "Observed")
+        )
+        
+        self.observed_distribution = np.array(self.observed_distribution)
         self.observed_stat_median = np.median(self.observed_distribution)
         
-        # 5.2 Null distribution
-        null_stats = []
-        subjects = self.df[[self.subject_col]].drop_duplicates()
-        original_labels = self.df.set_index(self.subject_col)[self.group_col].to_dict()
+        # -------------- 5.2 Null distribution --------------
         
-        for _ in tqdm(range(n_permutations), desc = "Null Distribution"):
-            shuffled_labels = np.random.permutation(list(original_labels.values()))
-            subject_mapping = dict(zip(subjects[self.subject_col], shuffled_labels))
-            
-            permuted_df = self.df.copy()
-            permuted_df[self.group_col] = permuted_df[self.subject_col].map(subject_mapping)
-            
-            resampled_perm_df = self._hierarchical_resample(permuted_df)
-            stat = self._compute_statistic(resampled_perm_df)
-            null_stats.append(stat)
-            
-        self.null_distribution = np.array(null_stats)
+        print(f"Calculating Null Distribution ({n_permutations} permutations)...")
         
-        # P-value
+        null_seeds = master_rng.integers(0, 10**9, size = n_permutations)
+        permuted_label_sets = [master_rng.permutation(original_labels) for _ in range(n_permutations)]
+            
+        self.null_distribution = Parallel(n_jobs = n_jobs)(
+            delayed(self._fast_resample_and_compute)(self.optimized_data, p_labels, seed)
+            for p_labels, seed in tqdm(zip(permuted_label_sets, null_seeds), total = n_permutations, desc = "Null")
+        )
+        
+        self.null_distribution = np.array(self.null_distribution)
+        
+        # -------------- 5.3 P-Value --------------
+        
         self.p_value = np.mean(self.null_distribution >= self.observed_stat_median)
-        
         return self.p_value
-      
-    # ------------ 6. Plotting ------------
+    
+    # --------------------------- 6. Plotting ---------------------------
     
     def plot_results(self, title = None):
         
