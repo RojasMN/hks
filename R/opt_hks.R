@@ -6,6 +6,8 @@ library(ggplot2)
 library(tidyverse)
 library(pbapply)
 
+set.seed(123)
+
 HierarchicalPermutationTest <- R6Class("HierarchicalPermutationTest",
                                        public = list(
                                          
@@ -382,8 +384,8 @@ tester_parietal <- HierarchicalPermutationTest$new(
   replace = TRUE
 )
 
-p_val_frontal <- tester_frontal$run(n_resamples = 100000, n_permutations = 100000, seed = 123)
-p_val_parietal <- tester_parietal$run(n_resamples = 100000, n_permutations = 100000, seed = 123)
+p_val_frontal <- tester_frontal$run(n_resamples = 50000, n_permutations = 50000, seed = 123)
+p_val_parietal <- tester_parietal$run(n_resamples = 50000, n_permutations = 50000, seed = 123)
 
 print(paste("P-value (Frontal):", p_val_frontal))
 print(paste("P-value (Parietal):", p_val_parietal))
