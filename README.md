@@ -15,7 +15,32 @@ The **Kolmogorov-Smirnov test** is a non-parametric method used to determine if 
 ### The Anderson-Darling (AD) Test
 The **Anderson-Darling test** is a modification of the KS test. While the KS test looks only at the *maximum* distance (which often happens near the median/center of the distribution), the Anderson-Darling test uses a weighted distance that places more emphasis on the **tails** (the extremes) of the distribution. It is often more sensitive to differences in the start or end of the distributions.
 
-## 2. The Problem: Pseudoreplication in Nested Data
+## 2. Data Structure
+
+This package is designed to support hierarchical (nested) data structures. It is specifically optimized for **unbalanced designs**, where:
+* Each **Subject** can have a different number of **Subunits**.
+* Each **Subunit** can have a different number of **Observations** (measurements).
+
+### Input Format
+Your input data should be a long-format table (CSV or Pandas DataFrame) with the following structure:
+
+| subject | subunit | group | variable |
+|:---|:---|:---|:---|
+| S_B0 | CELL_S_B0_0 | B | 2.807 |
+| S_B0 | CELL_S_B0_0 | B | 1.350 |
+| S_B0 | CELL_S_B0_1 | B | 1.612 |
+| S_T1 | CELL_S_T1_0 | T | 0.896 |
+
+### Hierarchy Overview
+- **Subject (`subject`):** The top-level experimental unit (e.g., Animal ID, Patient, or Batch).
+- **Subunit (`subunit`):** The nested unit within the subject (e.g., individual Cells, Regions of Interest, or Sensors).
+- **Group (`group`):** The experimental condition, genotype, or treatment group.
+- **Variable (`variable`):** The continuous numerical value being analyzed.
+
+> [!NOTE]
+> The statistical procedures in this package account for the nested nature of the data. In the provided `data_example.csv`, subjects contain between 10 and 56 subunits, and each subunit contains between 25 and 200 individual observations, demonstrating the package's ability to handle highly unbalanced datasets.
+
+## 3.. The Problem: Pseudoreplication in Nested Data
 
 Standard statistical tests (like the standard KS test) assume that every data point is **independent**. However, in biological and scientific data, this is often false.
 
@@ -27,7 +52,7 @@ Standard statistical tests (like the standard KS test) assume that every data po
 
 This inflation of the effective sample size is called **pseudoreplication**. It causes standard tests to return artificially low p-values, leading you to detect significant differences that don't actually exist (False Positives).
 
-## 3. The Solution: `HierarchicalPermutationTest` Class
+## 4. The Solution: `HierarchicalPermutationTest` Class
 
 The `HierarchicalPermutationTest` class implements a **hierarchical resampling (permutation) test** to calculate a valid p-value that respects the grouped structure of the data.
 
