@@ -1,6 +1,6 @@
 # Hierarchical Kolmogorov-Smirnov (HKS) Test
 
-A Python and R package designed for performing Hierarchical (Nested) Kolmogorov-Smirnov (KS) and Anderson-Darling (AD) tests. It addresses the critical statistical challenge of pseudoreplication in grouped or nested datasets (e.g., multiple neurons recorded from the same animal).
+Python and R code designed for performing Hierarchical (Nested) Kolmogorov-Smirnov (KS) and Anderson-Darling (AD) tests. It addresses the critical statistical challenge of pseudoreplication in grouped or nested datasets (e.g., multiple neurons recorded from the same animal).
 
 ---
 
